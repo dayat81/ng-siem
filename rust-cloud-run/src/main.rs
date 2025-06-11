@@ -19,12 +19,14 @@ struct PubSubPayload {
     message: PubSubMessage,
 }
 
+use actix_web::error::Error as ActixError;
+
 #[get("/")]
-async fn index() -> impl Responder {
-    let project_id = env::var("PROJECT_ID").expect("PROJECT_ID not set");
-    let subscription_id = env::var("SUBSCRIPTION_ID").expect("SUBSCRIPTION_ID not set");
+async fn index() -> Result<HttpResponse, MyError> {
+    let project_id = env::var("PROJECT_ID").map_err(|_| MyError("PROJECT_ID not set".to_string()))?;
+    let subscription_id = env::var("SUBSCRIPTION_ID").map_err(|_| MyError("SUBSCRIPTION_ID not set".to_string()))?;
     let config = ClientConfig::default();
-    let client = Client::new(config).await.unwrap();
+    let client = Client::new(config).await.map_err(|e| MyError(format!("Failed to create client: {}", e)))?;
 
     let subscription_name = format!("projects/{}/subscriptions/{}", project_id, subscription_id);
     let sub = client.subscription(&subscription_name);
@@ -52,19 +54,25 @@ async fn index() -> impl Responder {
                         }
                     }
                     message.ack().await;
+                    Ok::<(), MyError>(())
                 }
             },
             CancellationToken::new(),
             Some(receive_config),
-        ).await.unwrap();
+        ).await.map_err(|e| MyError(format!("Failed to receive messages: {}", e))).ok();
     });
 
     let mut messages = Vec::new();
+    use tokio::time::{timeout, Duration};
+
     for _ in 0..10 {
-        if let Some(message) = rx.recv().await {
-            messages.push(message);
-        } else {
-            break;
+        match timeout(Duration::from_secs(1), rx.recv()).await {
+            Ok(Some(message)) => {
+                messages.push(message);
+            }
+            _ => {
+                break;
+            }
         }
     }
 
@@ -78,14 +86,34 @@ async fn index() -> impl Responder {
             std::process::exit(1);
         }
     };
-    let rendered_html = tera.render("index.html", &context).unwrap();
+    let rendered_html = tera.render("index.html", &context).map_err(|e| format!("Failed to render template: {}", e))?;
 
-    HttpResponse::Ok().content_type("text/html").body(rendered_html)
+    Ok(HttpResponse::Ok().content_type("text/html").body(rendered_html))
 }
 
+use actix_web::{error, Error};
+
+#[derive(Debug)]
+struct MyError(String);
+
+impl std::fmt::Display for MyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::convert::From<String> for MyError {
+    fn from(value: String) -> Self {
+        MyError(value)
+    }
+}
+
+impl error::ResponseError for MyError {}
+
 #[get("/healthz")]
-async fn healthz() -> impl Responder {
-    HttpResponse::Ok().body("OK")
+async fn healthz() -> Result<HttpResponse, MyError> {
+    println!("Health check called!");
+    Ok(HttpResponse::Ok().body("OK"))
 }
 
 #[actix_web::main]
