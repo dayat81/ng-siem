@@ -1,0 +1,19 @@
+[package]
+name = "rust-cloud-run"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+actix-web = "4"
+google-cloud-pubsub = "0.30.0"
+tera = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.21"
+futures-util = "0.3"
+tokio = { version = "1.45.1", features = ["full"] }
+tokio-util = "0.7"
+
+[[bin]]
+name = "rust-cloud-run"
+path = "src/main.rs"
