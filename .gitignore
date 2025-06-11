@@ -118,3 +118,4 @@ dmypy.json
 .pyre/
 edr_mock.log
 node-pubsub-app/node_modules/
+node-pubsub-app/key.json
