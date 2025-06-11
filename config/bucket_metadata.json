@@ -1,0 +1,5 @@
+{
+  "encryption": {
+    "defaultKmsKeyName": "projects/northern-center-462508-k6/locations/asia-southeast2/keyRings/gcp-siem-keyring/cryptoKeys/gcp-siem-key"
+  }
+}
