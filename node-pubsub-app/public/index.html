@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pub/Sub Messages</title>
+</head>
+<body>
+  <h1>Pub/Sub Messages</h1>
+  <ul id="messages"></ul>
+
+  <script>
+    const ws = new WebSocket('ws://' + window.location.host);
+
+    ws.onmessage = (event) => {
+      const message = document.createElement('li');
+      message.textContent = event.data;
+      document.getElementById('messages').appendChild(message);
+    };
+  </script>
+</body>
+</html>

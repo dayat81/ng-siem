@@ -4,12 +4,30 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"strconv"
 
 	"cloud.google.com/go/pubsub"
 )
 
 func main() {
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		portStr = "8080"
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		log.Fatalf("Invalid port number: %v", err)
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello, Cloud Run!")
+	})
+
+	log.Printf("Listening on port: %d", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	log.Printf("GOOGLE_CLOUD_PROJECT: %s", projectID)
 	if projectID == "" {
